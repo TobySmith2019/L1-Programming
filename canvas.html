@@ -19,7 +19,7 @@
              //Prompts The User Asking What Difficulty They Would Like To Play And Does Not Let Them Continue To The Game Unless They Have Selected One of The Three Difficulty Options. The .toLowerCase Means That It Doesn't Matter The Case of The Input, It Will Be Changed To Lowercase
              var difficulty = ' ';
              while (difficulty != 'easy' && difficulty != 'medium' && difficulty != 'hard') {
-                 difficulty = prompt('Hi ' + name + ', What Difficulty Would You Like To Play? (Easy, Medium or Hard)', 'Easy');
+                 difficulty = prompt('Hi ' + name + ', What Difficulty Would You Like To Play? (Easy, Medium or Hard)', 'Easy').toLowerCase();
              }
 
              window.onload = function() {

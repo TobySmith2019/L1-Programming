@@ -59,6 +59,9 @@
 
              //Score And Difficulty Variables
              var lives = 5;
+             var level = 1;
+             var difficultySpeed = 10;
+             var enemyMax = 10;
 
              //Miscellaneous
              const ROAD_HEIGHT = 50;
@@ -82,6 +85,7 @@
              function mainloop() {
                  //Sets Startup Positions And Variables
                  if (gameStarting == true) {
+                     setDifficulty();
                      startPos();
                      gameStarting = false;
                  }
@@ -123,14 +127,15 @@
 
              //Function To Draw Multiple Enemies On The Canvas
              function drawEnemy() {
-                 for (var i = -1; i < 15; i++) {
+                 for (var i = -1; i < enemyMax; i++) {
                      colorRect(enemyXpos[i], enemyYpos[enemyYposChooser[i]], enemyWidth, enemyHeight, 'red');
                  };
              } //drawEnemy Function End
 
              //Function To Make The Enemies On The Canvas Move
              function enemyMove() {
-                 for (var i = -1; i < 15; i++) {
+                 enemySpeed = (level + difficultySpeed) / 2;
+                 for (var i = -1; i < enemyMax; i++) {
                      enemyXpos[i] += enemySpeed;
                  }
              } //enemyMove Function End
@@ -171,7 +176,7 @@
 
              //Function To Make The Enemies Reappear At The Beginning of The Screen After They Go Off The End
              function enemyTeleport() {
-                 for (var i = -1; i < 15; i++) {
+                 for (var i = -1; i < enemyMax; i++) {
                      if (enemyXpos[i] > canvas.width) { //Tests Whether The Enemy Is More Than The Canvas Width (Whether The Enemy Has Travelled Off The Right Side of The Canvas)
                          enemyXpos[i] = 0 - enemyWidth; // Sets The Enemy Back To Just Behind The Left Side of The Canvas
                      }
@@ -180,13 +185,33 @@
 
              //Function To Put Player Back To Their Start Position And Take A Life Off Them When They Touch An Enemy
              function enemyHit() {
-                 for (var i = -1; i < 15; i++) {
+                 for (var i = -1; i < enemyMax; i++) {
                      if (playerXpos + playerSize > enemyXpos[i] && playerXpos < enemyXpos[i] + enemyWidth && playerYpos + playerSize > enemyYpos[enemyYposChooser[i]] && playerYpos < enemyYpos[enemyYposChooser[i]] + enemyHeight) { // Tests Whether The Player Is Touching Any of The Enemies By Comparing The Position of Each Side of The Player To The Position of Each Side of Each Enemy
                          startPos(); //Puts Player Back To Start Position
                          lives -= 1; //Takes One Life Off The Player
                      }
                  }
              } //enemyHit Function End
+
+             //Function That Uses The Difficulty Prompt To Dictate How Hard The Game Is To Be
+             function setDifficulty() {
+                 if (difficulty == 'easy') { //If Difficulty Prompt Returns 'easy', Then The Program Sets Variables To Certain Values To Accomodate This
+                     lives = 5;
+                     enemyMax = 5;
+                 }
+
+                 if (difficulty == 'medium') { //If Difficulty Prompt Returns 'medium', Then The Program Sets Variables To Certain Values To Accomodate This
+                     difficultySpeed = 15;
+                     lives = 3;
+                     enemyMax = 10;
+                 }
+
+                 if (difficulty == 'hard') { //If Difficulty Prompt Returns 'hard', Then The Program Sets Variables To Certain Values To Accomodate This
+                     difficultySpeed = 20;
+                     lives = 1;
+                     enemyMax = 15;
+                 }
+             } //setDifficulty Function End
 
              //Function To Draw Text On Canvas
              function textRender(text, c, x, y, font) {
@@ -199,6 +224,7 @@
              function nextLevel() {
                  if (playerYpos < 0) { //States That If Player Y Position Is Less Than 0 (Above The Top of The Screen), Then Player Will Go Back To Start Position, Level Up, Get An Increase In Score And The Enemies Will Rerandomise
                      startPos();
+                     level++;
                      for (var i = -1; i < 100; i++) {
                          enemyXpos[i] = (Math.floor((Math.random() * 650)));
                      }

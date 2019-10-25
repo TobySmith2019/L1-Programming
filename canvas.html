@@ -49,6 +49,7 @@
              var playerXpos = 0;
              var playerYpos = 0;
              var playerSpeed = 2;
+             var rotateDirection = 1;
 
              //KeyCodes
              const W_KEY = 119;
@@ -153,8 +154,22 @@
 
              //Function To Draw The  Player On The Canvas
              function drawPlayer() {
-                 var img = document.getElementById("mouseUp");
-                 canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
+                 if (rotateDirection == 1) {
+                     var img = document.getElementById("mouseUp");
+                     canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
+                 }
+                 if (rotateDirection == 2) {
+                     var img = document.getElementById("mouseRight");
+                     canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
+                 }
+                 if (rotateDirection == 3) {
+                     var img = document.getElementById("mouseDown");
+                     canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
+                 }
+                 if (rotateDirection == 4) {
+                     var img = document.getElementById("mouseLeft");
+                     canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
+                 }
              } //drawPlayer Function End
 
              //Function To Set Where The Player Is To Start The Game
@@ -166,21 +181,25 @@
              //Function To Let The Player Move When They Push The WASD Keys
              function playerMove() {
                  if (wKeyPressed == true & oneClick == true) { //Tests Whether The W Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable
+                     rotateDirection = 1;
                      playerYpos -= ROAD_HEIGHT;
                      oneClick = false;
                  }
 
                  if (aKeyPressed == true && oneClick == true && playerXpos > 20) { //Tests Whether The A Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable. Also Tests Whether The Player Is On The Canvas Through The 'playerXpos > 20'
+                     rotateDirection = 4;
                      playerXpos -= ROAD_HEIGHT;
                      oneClick = false;
                  }
 
                  if (sKeyPressed == true && oneClick == true && playerYpos < canvas.height - playerSize - 20) { //Tests Whether The S Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable. Also Tests Whether The Player Is On The Canvas Through The 'playerYpos < canvas.height - playerSize - 20'
+                     rotateDirection = 3;
                      playerYpos += ROAD_HEIGHT;
                      oneClick = false;
                  }
 
                  if (dKeyPressed == true && oneClick == true && playerXpos < canvas.width - playerSize - 20) { //Tests Whether The D Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable. Also Tests Whether The Player Is On The Canvas Through The 'playerXpos < canvas.width - playerSize - 20'
+                     rotateDirection = 2;
                      playerXpos += ROAD_HEIGHT;
                      oneClick = false;
                  }

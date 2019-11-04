@@ -1,415 +1,361 @@
-     <!doctype html>
+    <!doctype html>
 
-     <head>
-         <title>Canvas</title>
-     </head>
+    <head>
+        <title>Canvas</title>
+    </head>
 
-     <body>
-         <img id="redcar" src="images/redcar.png" width="0">
-         <img id="mouseUp" src="images/mouseUp.png" width="0">
-         <img id="mouseDown" src="images/mouseDown.png" width="0">
-         <img id="mouseRight" src="images/mouseRight.png" width="0">
-         <img id="mouseLeft" src="images/mouseLeft.png" width="0">
-         <canvas id="gameCanvas" width="650" height="450"></canvas>
+    <body>
+        <img id="redcar" src="images/redcar.png" width="0">
+        <img id="mouseUp" src="images/mouseUp.png" width="0">
+        <img id="mouseDown" src="images/mouseDown.png" width="0">
+        <img id="mouseRight" src="images/mouseRight.png" width="0">
+        <img id="mouseLeft" src="images/mouseLeft.png" width="0">
+        <canvas id="gameCanvas" width="650" height="450"></canvas>
 
-         <script>
-             var canvas, canvasContext;
+        <script>
+            var canvas, canvasContext;
+            //Prompts The User For Their Name And Does Not Let Them Continue To The Game Unless They Input A Name Or Accept The Default Name of 'Player'
+            var name = ' ';
+            while (name == ' ' || name == null) {
+                name = prompt('What Is Your Name?', 'Player') || ' ';
+            }
+            //Prompts The User Asking What Difficulty They Would Like To Play And Does Not Let Them Continue To The Game Unless They Have Selected One of The Three Difficulty Options. The .toLowerCase Means That It Doesn't Matter The Case of The Input, It Will Be Changed To Lowercase
+            var difficulty = ' ';
+            while (difficulty != 'easy' && difficulty != 'medium' && difficulty != 'hard') {
+                difficulty = prompt('Hi ' + name + ', What Difficulty Would You Like To Play? (Easy, Medium or Hard)', 'Medium') || ' ';
+                difficulty = difficulty.toLowerCase();
+            }
+            window.onload = function() {
+                canvas = document.getElementById('gameCanvas');
+                canvasContext = canvas.getContext('2d');
+                document.addEventListener('keypress', keyPressed);
+                document.addEventListener('keyup', keyReleased);
+                setInterval(mainloop, 1000 / 50);
+            }
+            //Enemy Variables
+            var enemyWidth = 55;
+            var enemyHeight = 30;
+            var enemyXpos = [];
+            var enemyYpos = [];
+            var enemySpeed = 2;
+            var enemyYposChooser = [];
+            //Player Variables
+            var playerSize = 50;
+            var playerXpos = 0;
+            var playerYpos = 0;
+            var playerSpeed = 2;
+            var rotateDirection = 1;
+            //KeyCodes
+            const W_KEY = 119;
+            const A_KEY = 97;
+            const S_KEY = 115;
+            const D_KEY = 100;
+            const SPACE_KEY = 32;
+            //Key States
+            var wKeyPressed = false;
+            var aKeyPressed = false;
+            var sKeyPressed = false;
+            var dKeyPressed = false;
+            var spaceKeyPressed = false;
+            //Score And Difficulty Variables
+            var lives = 5;
+            var level = 1;
+            var difficultySpeed = 10;
+            var score = 0;
+            var enemyMax = 10;
+            //Player Sliding To Next Square Variables
+            var targetDestinationUp = 0;
+            var targetDestinationLeft = 0;
+            var targetDestinationRight = 0;
+            var targetDestinationDown = 0;
+            //Miscellaneous
+            const ROAD_HEIGHT = 50;
+            var gameStarting = true;
+            var oneClick = true;
+            //Sets Randomised Positions For Enemies To Appear On The Roads (Saves Them Into Arrays)
+            for (var i = -1; i < 100; i++) {
+                enemyXpos[i] = (Math.floor((Math.random() * 650)));
+            }
+            for (var i = -1; i < 100; i++) {
+                enemyYposChooser[i] = (Math.floor((Math.random() * 4)));
+            }
+            //Sets The Y Positions That The Enemies Will Appear On
+            for (var i = -1; i < 4; i++) {
+                enemyYpos[i] = ROAD_HEIGHT * 2 * i + ROAD_HEIGHT + (ROAD_HEIGHT - 30) / 2
+            }
+            //Loop Runs Code 50 Times Per Second
+            function mainloop() {
+                console.log(enemyMax);
+                //Sets Startup Positions And Variables
+                if (gameStarting == true) {
+                    setDifficulty();
+                    startPos();
+                    gameStarting = false;
+                }
+                //Runs The Code For The Entire Game If The Player Has More Than 0 Lives
+                if (lives > 0) {
+                    colorRect(0, 0, canvas.width, canvas.height, 'limeGreen'); //Draws Background Colour (Green)
+                    drawBackground(); //Draws The Roads Over The Top of The Green Background
+                    textRender('Lives: ' + lives, 'white', 10, 30, '20px Arial'); //Adds A Lives Counter In The Top Left of The Canvas
+                    textRender('Level: ' + level, 'white', canvas.width - 100, 30, '20px Arial'); //Adds A Level Counter In The Top Right of The Canvas
+                    drawPlayer(); //Draws The Player's Character On The Canvas
+                    drawEnemy(); //Draws Multiple Enemies On The Canvas
+                    enemyMove(); //Makes The Enemies Move
+                    playerMove(); //Gives The Player The Ability To Move
+                    enemyTeleport(); //Makes The Enemies Spawn Back At The Beginning of The Screen After They Reach The End
+                    enemyHit(); //Stops The Player From Being Able To Go Through The Enemies. Instead The Player Loses A Life And Goes Back To Spawn Point
+                    nextLevel(); //When The Player Goes Off The Top of The Screen, This Function Starts The Next Level
+                }
+                //Ends The Game If The Player Does Not Have More Than 0 Lives
+                else {
+                    textRender('Game Over', 'white', canvas.width / 2 - 130, canvas.height / 2 + 16 - ROAD_HEIGHT, '50px Arial'); //Displays "Game Over" In The Middle of The Screen
+                    textRender('Your Score Was ' + score, 'white', canvas.width / 4 - 15, canvas.height / 2 + 16 + ROAD_HEIGHT, '50px Arial'); //Displays Your Score Under "Game Over"
+                    restart();
+                }
+            }
+            //Function To Draw Coloured Rectangles On Canvas
+            function colorRect(x, y, w, h, c) {
+                canvasContext.fillStyle = c;
+                canvasContext.fillRect(x, y, w, h);
+            } //colorRect Function End
+            //Function To Draw The Grey Roads On The Canvas
+            function drawBackground() {
+                for (var i = 0; i < 7; i++) {
+                    colorRect(0, ROAD_HEIGHT * (i * 2) + ROAD_HEIGHT, canvas.width, ROAD_HEIGHT, 'grey');
+                }
+            } //drawBackground Function End
+            //Function To Draw Multiple Enemies On The Canvas
+            function drawEnemy() {
+                for (var i = -1; i < enemyMax; i++) {
+                    var img = document.getElementById("redcar");
+                    canvasContext.drawImage(img, enemyXpos[i], enemyYpos[enemyYposChooser[i]], enemyWidth, enemyHeight);
+                };
+            } //drawEnemy Function End
+            //Function To Make The Enemies On The Canvas Move
+            function enemyMove() {
+                enemySpeed = (level + difficultySpeed) / 2;
+                for (var i = -1; i < enemyMax; i++) {
+                    enemyXpos[i] += enemySpeed;
+                }
+            } //enemyMove Function End
+            //Function To Draw The  Player On The Canvas
+            function drawPlayer() {
+                if (rotateDirection == 1) {
+                    var img = document.getElementById("mouseUp");
+                    canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
+                }
+                if (rotateDirection == 2) {
+                    var img = document.getElementById("mouseRight");
+                    canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
+                }
+                if (rotateDirection == 3) {
+                    var img = document.getElementById("mouseDown");
+                    canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
+                }
+                if (rotateDirection == 4) {
+                    var img = document.getElementById("mouseLeft");
+                    canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
+                }
+            } //drawPlayer Function End
+            //Function To Set Where The Player Is To Start The Game
+            function startPos() {
+                playerXpos = canvas.width / 2 - playerSize / 2;
+                playerYpos = canvas.height - ROAD_HEIGHT / 2 - playerSize / 2;
+                targetDestinationDown = canvas.height - playerSize;
+                targetDestinationUp = canvas.height - playerSize;
+                targetDestinationLeft = canvas.width / 2 - playerSize / 2;
+                targetDestinationRight = canvas.width / 2 - playerSize / 2;
+            } //startPos Function End
+            //Function To Make The Player Slide To The Next Square Up From Their Current Location
+            function playerSlideUp() {
+                if (playerYpos > targetDestinationUp && rotateDirection == 1) {
+                    playerYpos -= 1;
+                }
+            } //playerSlideUp Function End
+            //Function To Make The Player Slide To The Next Square Down From Their Current Location
+            function playerSlideDown() {
+                if (playerYpos < targetDestinationDown && rotateDirection == 3) {
+                    playerYpos += 1;
+                }
+            } //playerSlideDown Function End
+            //Function To Make The Player Slide To The Next Square Left From Their Current Location
+            function playerSlideLeft() {
+                if (playerXpos > targetDestinationLeft && rotateDirection == 4) {
+                    playerXpos -= 1;
+                }
+            } //playerSlideLeft Function End
+            //Function To Make The Player Slide To The Next Square Right From Their Current Location
+            function playerSlideRight() {
+                if (playerXpos < targetDestinationRight && rotateDirection == 2) {
+                    playerXpos += 1;
+                }
+            } //playerSlideRight Function End
+            //Function To Let The Player Move When They Push The WASD Keys
+            function playerMove() {
+                if (wKeyPressed == true & oneClick == true) { //Tests Whether The W Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable
+                    rotateDirection = 1;
+                    targetDestinationUp = playerYpos - ROAD_HEIGHT;
+                    window.setInterval(playerSlideUp, 3);
+                    oneClick = false;
+                }
+                if (aKeyPressed == true && oneClick == true && playerXpos > 20) { //Tests Whether The A Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable. Also Tests Whether The Player Is On The Canvas Through The 'playerXpos > 20'
+                    rotateDirection = 4;
+                    targetDestinationLeft = playerXpos - ROAD_HEIGHT;
+                    window.setInterval(playerSlideLeft, 3);
+                    oneClick = false;
+                }
+                if (sKeyPressed == true && oneClick == true && playerYpos < canvas.height - playerSize - 20) { //Tests Whether The S Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable. Also Tests Whether The Player Is On The Canvas Through The 'playerYpos < canvas.height - playerSize - 20'
+                    rotateDirection = 3;
+                    targetDestinationDown = playerYpos + ROAD_HEIGHT;
+                    window.setInterval(playerSlideDown, 3);
+                    oneClick = false;
+                }
+                if (dKeyPressed == true && oneClick == true && playerXpos < canvas.width - playerSize - 20) { //Tests Whether The D Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable. Also Tests Whether The Player Is On The Canvas Through The 'playerXpos < canvas.width - playerSize - 20'
+                    rotateDirection = 2;
+                    targetDestinationRight = playerXpos + ROAD_HEIGHT;
+                    window.setInterval(playerSlideRight, 3);
+                    oneClick = false;
+                }
+            } //playerMove Function End
+            //Function To Make The Enemies Reappear At The Beginning of The Screen After They Go Off The End
+            function enemyTeleport() {
+                for (var i = -1; i < enemyMax; i++) {
+                    if (enemyXpos[i] > canvas.width) { //Tests Whether The Enemy Is More Than The Canvas Width (Whether The Enemy Has Travelled Off The Right Side of The Canvas)
+                        enemyXpos[i] = 0 - enemyWidth; // Sets The Enemy Back To Just Behind The Left Side of The Canvas
+                    }
+                }
+            } //enemyTeleport Function End
+            //Function To Put Player Back To Their Start Position And Take A Life Off Them When They Touch An Enemy
+            function enemyHit() {
+                for (var i = -1; i < enemyMax; i++) {
+                    if (playerXpos + playerSize > enemyXpos[i] && playerXpos < enemyXpos[i] + enemyWidth && playerYpos + playerSize > enemyYpos[enemyYposChooser[i]] && playerYpos < enemyYpos[enemyYposChooser[i]] + enemyHeight) { // Tests Whether The Player Is Touching Any of The Enemies By Comparing The Position of Each Side of The Player To The Position of Each Side of Each Enemy
+                        startPos(); //Puts Player Back To Start Position
+                        lives -= 1; //Takes One Life Off The Player
+                        rotateDirection = 1;
+                    }
+                }
+            } //enemyHit Function End
+            //Function That Uses The Difficulty Prompt To Dictate How Hard The Game Is To Be
+            function setDifficulty() {
+                if (difficulty == 'easy') { //If Difficulty Prompt Returns 'easy', Then The Program Sets Variables To Certain Values To Accomodate This
+                    lives = 5;
+                    enemyMax = 5;
+                }
+                if (difficulty == 'medium') { //If Difficulty Prompt Returns 'medium', Then The Program Sets Variables To Certain Values To Accomodate This
+                    difficultySpeed = 15;
+                    lives = 3;
+                    enemyMax = 10;
+                }
+                if (difficulty == 'hard') { //If Difficulty Prompt Returns 'hard', Then The Program Sets Variables To Certain Values To Accomodate This
+                    difficultySpeed = 20;
+                    lives = 1;
+                    enemyMax = 15;
+                }
+            } //setDifficulty Function End
+            //Function To Draw Text On Canvas
+            function textRender(text, c, x, y, font) {
+                canvasContext.font = font;
+                canvasContext.fillStyle = c;
+                canvasContext.fillText(text, x, y);
+            } //textRender Function End
+            //Function To Allow The Player To Progress To The Next Level After They Go Out The Top of The Canvas
+            function nextLevel() {
+                if (playerYpos < 0) { //States That If Player Y Position Is Less Than 0 (Above The Top of The Screen), Then Player Will Go Back To Start Position, Level Up, Get An Increase In Score And The Enemies Will Rerandomise
+                    startPos();
+                    level++;
+                    score += 10;
+                    targetDestinationUp = canvas.height;
+                    targetDestinationDown = canvas.height;
+                    targetDestinationLeft = canvas.width / 2 - playerSize / 2;
+                    targetDestinationRight = canvas.width / 2 - playerSize / 2;
+                    enemyMax += 3;
+                    for (var i = -1; i < 100; i++) {
+                        enemyXpos[i] = (Math.floor((Math.random() * 650)));
+                    }
+                    for (var i = -1; i < 100; i++) {
+                        enemyYposChooser[i] = (Math.floor((Math.random() * 4)));
+                    }
+                }
+            } //nextLevel Function End
+            //Function That Lets The Player Press The Space Bar From The Game Over Screen To Restart The Game
+            function restart() {
+                if (spaceKeyPressed == true) { //If Space Key Pressed, Game Is Effectively Restarted
+                    startPos();
+                    score = 0;
+                    level = 1;
+                    targetDestinationUp = canvas.height;
+                    targetDestinationDown = canvas.height;
+                    targetDestinationLeft = canvas.width / 2 - playerSize / 2;
+                    targetDestinationRight = canvas.width / 2 - playerSize / 2;
+                    if (difficulty == 'easy') { //If Difficulty Prompt Returns 'easy', Then The Program Sets Variables To Certain Values To Accomodate This
+                        lives = 5;
+                        enemyMax = 5;
+                    }
+                    if (difficulty == 'medium') { //If Difficulty Prompt Returns 'medium', Then The Program Sets Variables To Certain Values To Accomodate This
+                        difficultySpeed = 15;
+                        lives = 3;
+                        enemyMax = 10;
+                    }
+                    if (difficulty == 'hard') { //If Difficulty Prompt Returns 'hard', Then The Program Sets Variables To Certain Values To Accomodate This
+                        difficultySpeed = 20;
+                        lives = 1;
+                        enemyMax = 15;
+                    }
+                    for (var i = -1; i < 100; i++) {
+                        enemyXpos[i] = (Math.floor((Math.random() * 650)));
+                    }
+                    for (var i = -1; i < 100; i++) {
+                        enemyYposChooser[i] = (Math.floor((Math.random() * 4)));
+                    }
+                }
+            } //restart Function End
+            //Registers When A Specified Key Is Pressed Down
+            function keyPressed(evt) {
+                //console.log(evt.keyCode);
+                if (evt.keyCode == W_KEY) {
+                    wKeyPressed = true;
+                }
+                if (evt.keyCode == A_KEY) {
+                    aKeyPressed = true;
+                }
+                if (evt.keyCode == S_KEY) {
+                    sKeyPressed = true;
+                }
+                if (evt.keyCode == D_KEY) {
+                    dKeyPressed = true;
+                }
+                if (evt.keyCode == SPACE_KEY) {
+                    spaceKeyPressed = true;
+                }
+            } //keyPressed Function End
+            //Registers When A Specified Key Is Released
+            function keyReleased(evt) {
+                if (evt.keyCode == 87) {
+                    wKeyPressed = false;
+                    oneClick = true;
+                }
+                if (evt.keyCode == 65) {
+                    aKeyPressed = false;
+                    oneClick = true;
+                }
+                if (evt.keyCode == 83) {
+                    sKeyPressed = false;
+                    oneClick = true;
+                }
+                if (evt.keyCode == 68) {
+                    dKeyPressed = false;
+                    oneClick = true;
+                }
+                if (evt.keyCode == SPACE_KEY) {
+                    spaceKeyPressed = false;
+                }
+            } //keyReleased Function End
 
-             //Prompts The User For Their Name And Does Not Let Them Continue To The Game Unless They Input A Name Or Accept The Default Name of 'Player'
-             var name = ' ';
-             while (name == ' ' || name == null) {
-                 name = prompt('What Is Your Name?', 'Player') || ' ';
-             }
-
-             //Prompts The User Asking What Difficulty They Would Like To Play And Does Not Let Them Continue To The Game Unless They Have Selected One of The Three Difficulty Options. The .toLowerCase Means That It Doesn't Matter The Case of The Input, It Will Be Changed To Lowercase
-             var difficulty = ' ';
-             while (difficulty != 'easy' && difficulty != 'medium' && difficulty != 'hard') {
-                 difficulty = prompt('Hi ' + name + ', What Difficulty Would You Like To Play? (Easy, Medium or Hard)', 'Medium') || ' ';
-                 difficulty = difficulty.toLowerCase();
-             }
-
-             window.onload = function() {
-                 canvas = document.getElementById('gameCanvas');
-                 canvasContext = canvas.getContext('2d');
-
-                 document.addEventListener('keypress', keyPressed);
-                 document.addEventListener('keyup', keyReleased);
-                 setInterval(mainloop, 1000 / 50);
-             }
-
-             //Enemy Variables
-             var enemyWidth = 55;
-             var enemyHeight = 30;
-             var enemyXpos = [];
-             var enemyYpos = [];
-             var enemySpeed = 2;
-             var enemyYposChooser = [];
-
-             //Player Variables
-             var playerSize = 50;
-             var playerXpos = 0;
-             var playerYpos = 0;
-             var playerSpeed = 2;
-             var rotateDirection = 1;
-
-             //KeyCodes
-             const W_KEY = 119;
-             const A_KEY = 97;
-             const S_KEY = 115;
-             const D_KEY = 100;
-             const SPACE_KEY = 32;
-
-             //Key States
-             var wKeyPressed = false;
-             var aKeyPressed = false;
-             var sKeyPressed = false;
-             var dKeyPressed = false;
-             var spaceKeyPressed = false;
-
-             //Score And Difficulty Variables
-             var lives = 5;
-             var level = 1;
-             var difficultySpeed = 10;
-             var score = 0;
-             var enemyMax = 10;
-
-             //Player Sliding To Next Square Variables
-             var targetDestinationUp = 0;
-             var targetDestinationLeft = 0;
-             var targetDestinationRight = 0;
-             var targetDestinationDown = 0;
-
-             //Miscellaneous
-             const ROAD_HEIGHT = 50;
-             var gameStarting = true;
-             var oneClick = true;
-
-             //Sets Randomised Positions For Enemies To Appear On The Roads (Saves Them Into Arrays)
-             for (var i = -1; i < 100; i++) {
-                 enemyXpos[i] = (Math.floor((Math.random() * 650)));
-             }
-             for (var i = -1; i < 100; i++) {
-                 enemyYposChooser[i] = (Math.floor((Math.random() * 4)));
-             }
-
-             //Sets The Y Positions That The Enemies Will Appear On
-             for (var i = -1; i < 4; i++) {
-                 enemyYpos[i] = ROAD_HEIGHT * 2 * i + ROAD_HEIGHT + (ROAD_HEIGHT - 30) / 2
-             }
-
-             //Loop Runs Code 50 Times Per Second
-             function mainloop() {
-                 console.log(enemyMax);
-                 //Sets Startup Positions And Variables
-                 if (gameStarting == true) {
-                     setDifficulty();
-                     startPos();
-                     gameStarting = false;
-                 }
-
-                 //Runs The Code For The Entire Game If The Player Has More Than 0 Lives
-                 if (lives > 0) {
-                     colorRect(0, 0, canvas.width, canvas.height, 'limeGreen'); //Draws Background Colour (Green)
-                     drawBackground(); //Draws The Roads Over The Top of The Green Background
-                     textRender('Lives: ' + lives, 'white', 10, 30, '20px Arial'); //Adds A Lives Counter In The Top Left of The Canvas
-                     textRender('Level: ' + level, 'white', canvas.width - 100, 30, '20px Arial'); //Adds A Level Counter In The Top Right of The Canvas
-                     drawPlayer(); //Draws The Player's Character On The Canvas
-                     drawEnemy(); //Draws Multiple Enemies On The Canvas
-                     enemyMove(); //Makes The Enemies Move
-                     playerMove(); //Gives The Player The Ability To Move
-                     enemyTeleport(); //Makes The Enemies Spawn Back At The Beginning of The Screen After They Reach The End
-                     enemyHit(); //Stops The Player From Being Able To Go Through The Enemies. Instead The Player Loses A Life And Goes Back To Spawn Point
-                     nextLevel(); //When The Player Goes Off The Top of The Screen, This Function Starts The Next Level
-                 }
-
-                 //Ends The Game If The Player Does Not Have More Than 0 Lives
-                 else {
-                     textRender('Game Over', 'white', canvas.width / 2 - 130, canvas.height / 2 + 16 - ROAD_HEIGHT, '50px Arial'); //Displays "Game Over" In The Middle of The Screen
-                     textRender('Your Score Was ' + score, 'white', canvas.width / 4 - 15, canvas.height / 2 + 16 + ROAD_HEIGHT, '50px Arial'); //Displays Your Score Under "Game Over"
-                     restart();
-                 }
-             }
-
-             //Function To Draw Coloured Rectangles On Canvas
-             function colorRect(x, y, w, h, c) {
-                 canvasContext.fillStyle = c;
-                 canvasContext.fillRect(x, y, w, h);
-             } //colorRect Function End
-
-             //Function To Draw The Grey Roads On The Canvas
-             function drawBackground() {
-                 for (var i = 0; i < 7; i++) {
-                     colorRect(0, ROAD_HEIGHT * (i * 2) + ROAD_HEIGHT, canvas.width, ROAD_HEIGHT, 'grey');
-                 }
-             } //drawBackground Function End
-
-             //Function To Draw Multiple Enemies On The Canvas
-             function drawEnemy() {
-                 for (var i = -1; i < enemyMax; i++) {
-                     var img = document.getElementById("redcar");
-                     canvasContext.drawImage(img, enemyXpos[i], enemyYpos[enemyYposChooser[i]], enemyWidth, enemyHeight);
-                 };
-             } //drawEnemy Function End
-
-             //Function To Make The Enemies On The Canvas Move
-             function enemyMove() {
-                 enemySpeed = (level + difficultySpeed) / 2;
-                 for (var i = -1; i < enemyMax; i++) {
-                     enemyXpos[i] += enemySpeed;
-                 }
-             } //enemyMove Function End
-
-             //Function To Draw The  Player On The Canvas
-             function drawPlayer() {
-                 if (rotateDirection == 1) {
-                     var img = document.getElementById("mouseUp");
-                     canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
-                 }
-                 if (rotateDirection == 2) {
-                     var img = document.getElementById("mouseRight");
-                     canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
-                 }
-                 if (rotateDirection == 3) {
-                     var img = document.getElementById("mouseDown");
-                     canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
-                 }
-                 if (rotateDirection == 4) {
-                     var img = document.getElementById("mouseLeft");
-                     canvasContext.drawImage(img, playerXpos, playerYpos, playerSize, playerSize);
-                 }
-             } //drawPlayer Function End
-
-             //Function To Set Where The Player Is To Start The Game
-             function startPos() {
-                 playerXpos = canvas.width / 2 - playerSize / 2;
-                 playerYpos = canvas.height - ROAD_HEIGHT / 2 - playerSize / 2;
-                 targetDestinationDown = canvas.height - playerSize;
-                 targetDestinationUp = canvas.height - playerSize;
-                 targetDestinationLeft = canvas.width / 2 - playerSize / 2;
-                 targetDestinationRight = canvas.width / 2 - playerSize / 2;
-             } //startPos Function End
-
-             //Function To Make The Player Slide To The Next Square Up From Their Current Location
-             function playerSlideUp() {
-                 if (playerYpos > targetDestinationUp && rotateDirection == 1) {
-                     playerYpos -= 1;
-                 }
-             } //playerSlideUp Function End
-
-             //Function To Make The Player Slide To The Next Square Down From Their Current Location
-             function playerSlideDown() {
-                 if (playerYpos < targetDestinationDown && rotateDirection == 3) {
-                     playerYpos += 1;
-                 }
-             } //playerSlideDown Function End
-
-             //Function To Make The Player Slide To The Next Square Left From Their Current Location
-             function playerSlideLeft() {
-                 if (playerXpos > targetDestinationLeft && rotateDirection == 4) {
-                     playerXpos -= 1;
-                 }
-             } //playerSlideLeft Function End
-
-             //Function To Make The Player Slide To The Next Square Right From Their Current Location
-             function playerSlideRight() {
-                 if (playerXpos < targetDestinationRight && rotateDirection == 2) {
-                     playerXpos += 1;
-                 }
-             } //playerSlideRight Function End
-
-             //Function To Let The Player Move When They Push The WASD Keys
-             function playerMove() {
-                 if (wKeyPressed == true & oneClick == true) { //Tests Whether The W Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable
-                     rotateDirection = 1;
-                     targetDestinationUp = playerYpos - ROAD_HEIGHT;
-                     window.setInterval(playerSlideUp, 3);
-                     oneClick = false;
-                 }
-
-                 if (aKeyPressed == true && oneClick == true && playerXpos > 20) { //Tests Whether The A Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable. Also Tests Whether The Player Is On The Canvas Through The 'playerXpos > 20'
-                     rotateDirection = 4;
-                     targetDestinationLeft = playerXpos - ROAD_HEIGHT;
-                     window.setInterval(playerSlideLeft, 3);
-                     oneClick = false;
-                 }
-
-                 if (sKeyPressed == true && oneClick == true && playerYpos < canvas.height - playerSize - 20) { //Tests Whether The S Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable. Also Tests Whether The Player Is On The Canvas Through The 'playerYpos < canvas.height - playerSize - 20'
-                     rotateDirection = 3;
-                     targetDestinationDown = playerYpos + ROAD_HEIGHT;
-                     window.setInterval(playerSlideDown, 3);
-                     oneClick = false;
-                 }
-
-                 if (dKeyPressed == true && oneClick == true && playerXpos < canvas.width - playerSize - 20) { //Tests Whether The D Key Is Pressed AND Been Released, The Latter Half Is Done With The oneClick Variable. Also Tests Whether The Player Is On The Canvas Through The 'playerXpos < canvas.width - playerSize - 20'
-                     rotateDirection = 2;
-                     targetDestinationRight = playerXpos + ROAD_HEIGHT;
-                     window.setInterval(playerSlideRight, 3);
-                     oneClick = false;
-                 }
-             } //playerMove Function End
-
-             //Function To Make The Enemies Reappear At The Beginning of The Screen After They Go Off The End
-             function enemyTeleport() {
-                 for (var i = -1; i < enemyMax; i++) {
-                     if (enemyXpos[i] > canvas.width) { //Tests Whether The Enemy Is More Than The Canvas Width (Whether The Enemy Has Travelled Off The Right Side of The Canvas)
-                         enemyXpos[i] = 0 - enemyWidth; // Sets The Enemy Back To Just Behind The Left Side of The Canvas
-                     }
-                 }
-             } //enemyTeleport Function End
-
-             //Function To Put Player Back To Their Start Position And Take A Life Off Them When They Touch An Enemy
-             function enemyHit() {
-                 for (var i = -1; i < enemyMax; i++) {
-                     if (playerXpos + playerSize > enemyXpos[i] && playerXpos < enemyXpos[i] + enemyWidth && playerYpos + playerSize > enemyYpos[enemyYposChooser[i]] && playerYpos < enemyYpos[enemyYposChooser[i]] + enemyHeight) { // Tests Whether The Player Is Touching Any of The Enemies By Comparing The Position of Each Side of The Player To The Position of Each Side of Each Enemy
-                         startPos(); //Puts Player Back To Start Position
-                         lives -= 1; //Takes One Life Off The Player
-                         rotateDirection = 1;
-                     }
-                 }
-             } //enemyHit Function End
-
-             //Function That Uses The Difficulty Prompt To Dictate How Hard The Game Is To Be
-             function setDifficulty() {
-                 if (difficulty == 'easy') { //If Difficulty Prompt Returns 'easy', Then The Program Sets Variables To Certain Values To Accomodate This
-                     lives = 5;
-                     enemyMax = 5;
-                 }
-
-                 if (difficulty == 'medium') { //If Difficulty Prompt Returns 'medium', Then The Program Sets Variables To Certain Values To Accomodate This
-                     difficultySpeed = 15;
-                     lives = 3;
-                     enemyMax = 10;
-                 }
-
-                 if (difficulty == 'hard') { //If Difficulty Prompt Returns 'hard', Then The Program Sets Variables To Certain Values To Accomodate This
-                     difficultySpeed = 20;
-                     lives = 1;
-                     enemyMax = 15;
-                 }
-             } //setDifficulty Function End
-
-             //Function To Draw Text On Canvas
-             function textRender(text, c, x, y, font) {
-                 canvasContext.font = font;
-                 canvasContext.fillStyle = c;
-                 canvasContext.fillText(text, x, y);
-             } //textRender Function End
-
-             //Function To Allow The Player To Progress To The Next Level After They Go Out The Top of The Canvas
-             function nextLevel() {
-                 if (playerYpos < 0) { //States That If Player Y Position Is Less Than 0 (Above The Top of The Screen), Then Player Will Go Back To Start Position, Level Up, Get An Increase In Score And The Enemies Will Rerandomise
-                     startPos();
-                     level++;
-                     score += 10;
-                     targetDestinationUp = canvas.height;
-                     targetDestinationDown = canvas.height;
-                     targetDestinationLeft = canvas.width / 2 - playerSize / 2;
-                     targetDestinationRight = canvas.width / 2 - playerSize / 2;
-                     enemyMax += 3;
-
-                     for (var i = -1; i < 100; i++) {
-                         enemyXpos[i] = (Math.floor((Math.random() * 650)));
-                     }
-
-                     for (var i = -1; i < 100; i++) {
-                         enemyYposChooser[i] = (Math.floor((Math.random() * 4)));
-                     }
-                 }
-             } //nextLevel Function End
-
-             //Function That Lets The Player Press The Space Bar From The Game Over Screen To Restart The Game
-             function restart() {
-                 if (spaceKeyPressed == true) { //If Space Key Pressed, Game Is Effectively Restarted
-                     startPos();
-                     score = 0;
-                     level = 1;
-                     targetDestinationUp = canvas.height;
-                     targetDestinationDown = canvas.height;
-                     targetDestinationLeft = canvas.width / 2 - playerSize / 2;
-                     targetDestinationRight = canvas.width / 2 - playerSize / 2;
-
-                     if (difficulty == 'easy') { //If Difficulty Prompt Returns 'easy', Then The Program Sets Variables To Certain Values To Accomodate This
-                         lives = 5;
-                         enemyMax = 5;
-                     }
-
-                     if (difficulty == 'medium') { //If Difficulty Prompt Returns 'medium', Then The Program Sets Variables To Certain Values To Accomodate This
-                         difficultySpeed = 15;
-                         lives = 3;
-                         enemyMax = 10;
-                     }
-
-                     if (difficulty == 'hard') { //If Difficulty Prompt Returns 'hard', Then The Program Sets Variables To Certain Values To Accomodate This
-                         difficultySpeed = 20;
-                         lives = 1;
-                         enemyMax = 15;
-                     }
-                     for (var i = -1; i < 100; i++) {
-                         enemyXpos[i] = (Math.floor((Math.random() * 650)));
-                     }
-
-                     for (var i = -1; i < 100; i++) {
-                         enemyYposChooser[i] = (Math.floor((Math.random() * 4)));
-                     }
-                 }
-             } //restart Function End
-
-             //Registers When A Specified Key Is Pressed Down
-             function keyPressed(evt) {
-                 //console.log(evt.keyCode);
-                 if (evt.keyCode == W_KEY) {
-                     wKeyPressed = true;
-                 }
-
-                 if (evt.keyCode == A_KEY) {
-                     aKeyPressed = true;
-                 }
-
-                 if (evt.keyCode == S_KEY) {
-                     sKeyPressed = true;
-                 }
-
-                 if (evt.keyCode == D_KEY) {
-                     dKeyPressed = true;
-                 }
-
-                 if (evt.keyCode == SPACE_KEY) {
-                     spaceKeyPressed = true;
-                 }
-             } //keyPressed Function End
-
-             //Registers When A Specified Key Is Released
-             function keyReleased(evt) {
-                 if (evt.keyCode == 87) {
-                     wKeyPressed = false;
-                     oneClick = true;
-                 }
-
-                 if (evt.keyCode == 65) {
-                     aKeyPressed = false;
-                     oneClick = true;
-                 }
-
-                 if (evt.keyCode == 83) {
-                     sKeyPressed = false;
-                     oneClick = true;
-                 }
-
-                 if (evt.keyCode == 68) {
-                     dKeyPressed = false;
-                     oneClick = true;
-                 }
-
-                 if (evt.keyCode == SPACE_KEY) {
-                     spaceKeyPressed = false;
-                 }
-             } //keyReleased Function End
-
-         </script>
-         <br>
-         WASD To Move
-         <br>
-         Get To The Top of The Screen To Advance To The Next Level
-         <br>
-         Space To Restart Once You Die
-     </body>
+        </script>
+        <br>
+        WASD To Move
+        <br>
+        Get To The Top of The Screen To Advance To The Next Level
+        <br>
+        Space To Restart Once You Die
+    </body>
